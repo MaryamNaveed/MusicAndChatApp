@@ -1,9 +1,167 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".CreateAccount">
+    tools:context=".CreateAccount"
+    android:orientation="vertical"
+    android:weightSum="1"
+    android:background="@color/black">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight=".08"
+        android:layout_margin="5dp">
+
+        <TextView
+            android:id="@+id/signin"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_marginStart="10dp"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="10dp"
+            android:background="@android:color/transparent"
+            android:clickable="true"
+            android:text="Sign In"
+            android:textColor="@color/white"
+            android:textSize="20dp">
+
+        </TextView>
+
+
+
+    </RelativeLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight=".2"
+        android:orientation="horizontal"
+        android:weightSum="1">
+
+
+
+        <RelativeLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight=".4"
+            android:layout_margin="15dp">
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:src="@drawable/mainlogo1">
+
+            </ImageView>
+
+        </RelativeLayout>
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight=".07"
+        android:orientation="horizontal"
+        android:weightSum="1"
+        android:layout_marginLeft="5dp">
+        <RelativeLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight=".4">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="Musify"
+                android:textColor="@color/white"
+                android:textSize="30dp"
+                android:textStyle="bold">
+
+            </TextView>
+
+
+
+        </RelativeLayout>
+
+    </LinearLayout>
+
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight=".08"
+        android:layout_margin="15dp">
+
+        <Button
+            android:id="@+id/fblogin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/roundedwhitebutton"
+            android:drawableStart="@drawable/fb"
+            android:drawablePadding="-5sp"
+            android:gravity="left|center_vertical"
+            android:paddingLeft="50dp"
+            android:paddingRight="50dp"
+            android:text=" Continue with Facebook"
+            android:textAllCaps="false"
+            android:textColor="#3F51B5"
+            android:textSize="17dp"></Button>
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight=".08"
+        android:layout_margin="15dp">
+
+        <Button
+            android:id="@+id/googlelogin"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/roundedwhitebutton"
+            android:drawableStart="@drawable/google"
+            android:drawablePadding="-5sp"
+            android:gravity="left|center_vertical"
+            android:paddingLeft="50dp"
+            android:paddingRight="50dp"
+            android:text=" Continue with Google"
+            android:textAllCaps="false"
+            android:textColor="#F44336"
+            android:textSize="17dp">
+
+        </Button>
+    </RelativeLayout>
+
+
+
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight=".08"
+        android:layout_margin="15dp">
+
+        <Button
+            android:id="@+id/createaccount"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/roundedwhitebutton"
+            android:gravity="center"
+            android:text="Create Account"
+            android:textAllCaps="false"
+            android:textColor="#FFC107"
+            android:textSize="17dp">
+
+        </Button>
+    </RelativeLayout>
+
+
+
+
+
+</LinearLayout>
