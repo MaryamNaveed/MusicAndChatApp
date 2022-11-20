@@ -1,11 +1,14 @@
 package com.ass2.i190426_i190435;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -19,6 +22,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -26,6 +40,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -111,41 +126,7 @@ public class MessageActivity extends AppCompatActivity {
         });
 
 
-//
-//        Query ref = FirebaseDatabase.getInstance().getReference().child("user").orderByChild("id").equalTo(id);
-//
-//        ref.addValueEventListener(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot snapshot) {
-//                getMessage(mAuth.getUid(), id);
-//
-//                for (DataSnapshot appleSnapshot: snapshot.getChildren()) {
-//                    User u=appleSnapshot.getValue(User.class);
-//                    seenUser=u.lastSeen;
-//                    statusUser=u.status;
-//
-//                    if(statusUser.equals("offline")){
-//                        seen.setText(seenUser);
-//                    }
-//                    else{
-//                        seen.setText(statusUser);
-//                    }
-//
-//                }
-//
-//
-//
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//
-//            }
-//        });
-//
-//
-//
-//
+
     }
     @RequiresApi(api = Build.VERSION_CODES.O)
     public void sendMessage(int sender, int receiver,String message, String messageType){
@@ -155,40 +136,140 @@ public class MessageActivity extends AppCompatActivity {
         Chat newChat = new Chat(sender, receiver, message, dtf.format(now), messageType, 0);
 
 
+        StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/addChat.php",
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        System.out.println(response);
+
+
+                        try {
+                            JSONObject res = new JSONObject(response);
+
+                            if (res.getInt("reqcode") == 1) {
+
+                                getMessage();
+
+                            } else {
+                                Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+
+                    }
+                }) {
+            @Nullable
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+                params.put("sender", String.valueOf(newChat.getSender()));
+                params.put("receiver", String.valueOf(newChat.getReceiver()));
+                params.put("message", newChat.getMessage());
+                params.put("messageType", newChat.getMessageType());
+                params.put("date", newChat.getDate());
+                params.put("seen",String.valueOf(0));
+
+
+
+                return params;
+            }
+        };
+
+        RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+        queue.add(request);
+
+
+
+
+
+
+
     }
-//    public void getMessage(String myId, String id1){
-//        ls=new ArrayList<>();
-//
-//        DatabaseReference ref = FirebaseDatabase.getInstance().getReference("chat");
-//
-//        ref.addValueEventListener(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot snapshot) {
-//                ls.clear();
-//                for(DataSnapshot dataSnapshot: snapshot.getChildren()){
-//                    Chat c= dataSnapshot.getValue(Chat.class);
-////                    Toast.makeText(MessageActivity.this, c.getSender()+" "+c.getMessage()+"  "+c.getReceiver(),Toast.LENGTH_LONG).show();
-//                    if((c.getReceiver().equals(myId) && c.getSender().equals(id1)) ||
-//                            ( c.getReceiver().equals(id1) && c.getSender().equals(myId))){
-////                        Toast.makeText(MessageActivity.this, "Added: "+c.getMessage(),Toast.LENGTH_LONG).show();
-//                        ls.add(c);
-//
-//                    }
-//                    adapter=new MessageAdapter(ls, MessageActivity.this);
-//                    rv.setAdapter(adapter);
-//
-//                }
-//
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//
-//            }
-//        });
-//
-//    }
-//
+    public void getMessage(){
+        ls.clear();
+
+        StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getChatbyId.php",
+                new Response.Listener<String>() {
+                    @SuppressLint("NotifyDataSetChanged")
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void onResponse(String response) {
+                        System.out.println(response);
+
+
+                        try {
+                            JSONObject res = new JSONObject(response);
+
+                            if (res.getInt("reqcode") == 1) {
+
+                                JSONArray chats=res.getJSONArray("chats");
+                                for (int i=0; i<chats.length(); i++){
+                                    JSONObject c=chats.getJSONObject(i);
+
+                                    ls.add(new Chat(c.getInt("sender"),c.getInt("receiver"), c.getString("message"), c.getString("date"),c.getString("messageType"),c.getInt("seen")));
+                                    System.out.println(ls.get(i).getMessage());
+                                    adapter.notifyDataSetChanged();
+
+
+                                }
+
+
+
+                            } else {
+                                Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }) {
+            @Nullable
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+
+                int idd=mPref.getInt("id", 0);
+
+                params.put("sender", String.valueOf(idd));
+                params.put("receiver", String.valueOf(id));
+
+                return params;
+            }
+        };
+
+        RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+        queue.add(request);
+
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        getMessage();
+    }
+
+    //
 //    @Override
 //    protected void onResume() {
 //        super.onResume();

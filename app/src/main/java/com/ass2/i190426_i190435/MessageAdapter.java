@@ -6,6 +6,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -23,6 +24,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHo
     public MessageAdapter(List<Chat> ls, Context c) {
         this.ls=ls;
         this.c=c;
+
     }
 
     @NonNull
@@ -46,6 +48,8 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHo
         holder.msg.setText(chat.getMessage());
         holder.date.setText(chat.getDate());
 
+
+
     }
 
     @Override
@@ -60,23 +64,18 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHo
 
             msg=itemView.findViewById(R.id.msg);
             date=itemView.findViewById(R.id.date);
+
         }
     }
 
     @Override
     public int getItemViewType(int position){
-//        FirebaseUser firebaseUser= FirebaseAuth.getInstance().getCurrentUser();
-//
-//        if(ls.get(position).getSender().equals(firebaseUser.getUid())){
-//            return 0;
-//        }
-//        else{
-//            return 1;
-//        }
+
         SharedPreferences mPref;
         SharedPreferences.Editor editmPref;
         mPref= c.getSharedPreferences("com.ass2.i190426_i190435", c.MODE_PRIVATE);
         editmPref=mPref.edit();
+
         if(ls.get(position).getSender()==mPref.getInt("id", 0)){
             return 0;
 
