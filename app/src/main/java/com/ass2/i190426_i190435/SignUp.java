@@ -22,6 +22,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -207,6 +208,11 @@ public class SignUp extends AppCompatActivity {
                             return params;
                         }
                     };
+
+                    request.setRetryPolicy(new DefaultRetryPolicy(
+                            10000,
+                            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
                     RequestQueue queue = Volley.newRequestQueue(SignUp.this);
                     queue.add(request);

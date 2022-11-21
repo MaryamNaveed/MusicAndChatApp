@@ -4,25 +4,37 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaRecorder;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.os.Handler;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -34,6 +46,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -49,7 +69,11 @@ public class MessageActivity extends AppCompatActivity {
     CircleImageView profile;
     TextView name, seen;
     EditText msg;
-    ImageButton send;
+    ImageButton send, voice;
+    ImageView image;
+    boolean isVoice=false;
+    MediaRecorder recorder;
+    String fileName;
 
     String userName, userDp, seenUser, statusUser;
     int id;
@@ -61,8 +85,6 @@ public class MessageActivity extends AppCompatActivity {
 
     SharedPreferences mPref;
     SharedPreferences.Editor editmPref;
-
-
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -79,17 +101,19 @@ public class MessageActivity extends AppCompatActivity {
         seen=findViewById(R.id.seen);
         mPref= getSharedPreferences("com.ass2.i190426_i190435", MODE_PRIVATE);
         editmPref=mPref.edit();
+        image=findViewById(R.id.image);
+        voice=findViewById(R.id.voice);
 
         adapter=new MessageAdapter(ls, MessageActivity.this);
         rv.setAdapter(adapter);
         RecyclerView.LayoutManager lm=new LinearLayoutManager(MessageActivity.this);
         rv.setLayoutManager(lm);
+        getMessage();
 
         userName=getIntent().getStringExtra("name");
         name.setText(userName);
 
         id=getIntent().getIntExtra("id", 0);
-
 
 
         userDp=getIntent().getStringExtra("profile");
@@ -108,20 +132,90 @@ public class MessageActivity extends AppCompatActivity {
             seen.setText(statusUser);
         }
 
+        ContextWrapper cw = new ContextWrapper(getApplicationContext());
+        File music = cw.getExternalFilesDir(Environment.DIRECTORY_MUSIC);
+        File file = new File(music, "audio"+".mp3");
+        fileName=file.getPath();
 
+        voice.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(isVoice){
+                    isVoice=false;
+                    voice.setImageResource(R.drawable.ic_baseline_mic_24);
+                    stopRecording();
+                }
+                else{
+                    isVoice=true;
+                    voice.setImageResource(R.drawable.ic_baseline_delete_24);
+                    if (ActivityCompat.checkSelfPermission(MessageActivity.this, Manifest.permission.RECORD_AUDIO)
+                            != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(MessageActivity.this, new String[] { Manifest.permission.RECORD_AUDIO },
+                                10);
+                    } else {
+                        startRecording();
+                    }
+                    Toast.makeText(MessageActivity.this, "Recording started", Toast.LENGTH_LONG).show();
+
+                }
+            }
+        });
+
+        image.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent i = new Intent();
+                i.setType("image/*");
+                i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                i.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(
+                        Intent.createChooser(i, "Choose your Dp"),
+                        200
+                );
+            }
+        });
 
 
         send.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
             public void onClick(View view) {
-                if(msg.getText().toString().trim().equals("")){
-                    Toast.makeText(MessageActivity.this, "Message is Empty", Toast.LENGTH_SHORT).show();
+                if(isVoice){
+                    isVoice=false;
+                    voice.setImageResource(R.drawable.ic_baseline_mic_24);
+                    stopRecording();
+
+
+
+                    try{
+                        ByteArrayOutputStream out = new ByteArrayOutputStream();
+                        BufferedInputStream in = new BufferedInputStream(new FileInputStream(fileName));
+                        int read;
+                        byte[] buff = new byte[1024];
+                        while ((read = in.read(buff)) > 0)
+                        {
+                            out.write(buff, 0, read);
+                        }
+                        out.flush();
+                        byte[] audioBytes = out.toByteArray();
+                        final String audioData=Base64.getEncoder().encodeToString(audioBytes);
+                        sendMessage(mPref.getInt("id", 0), id,audioData, "Audio");
+                    }
+                    catch (Exception e){
+
+                    }
+
                 }
-                else{
-                    sendMessage(mPref.getInt("id", 0), id,msg.getText().toString(), "Text");
-                    msg.setText("");
+                else {
+                    if(msg.getText().toString().trim().equals("")){
+                        Toast.makeText(MessageActivity.this, "Message is Empty", Toast.LENGTH_SHORT).show();
+                    }
+                    else{
+                        sendMessage(mPref.getInt("id", 0), id,msg.getText().toString(), "Text");
+                        msg.setText("");
+                    }
                 }
+
             }
         });
 
@@ -140,7 +234,7 @@ public class MessageActivity extends AppCompatActivity {
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        System.out.println(response);
+//                        System.out.println(response);
 
 
                         try {
@@ -148,7 +242,6 @@ public class MessageActivity extends AppCompatActivity {
 
                             if (res.getInt("reqcode") == 1) {
 
-                                getMessage();
 
                             } else {
                                 Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
@@ -185,18 +278,22 @@ public class MessageActivity extends AppCompatActivity {
             }
         };
 
+        request.setRetryPolicy(new DefaultRetryPolicy(
+                50000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
         RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
         queue.add(request);
 
 
-
-
-
+        getMessage();
 
 
     }
     public void getMessage(){
-        ls.clear();
+
+
 
         StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getChatbyId.php",
                 new Response.Listener<String>() {
@@ -204,7 +301,7 @@ public class MessageActivity extends AppCompatActivity {
                     @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void onResponse(String response) {
-                        System.out.println(response);
+                        Toast.makeText(MessageActivity.this, "Getting", Toast.LENGTH_SHORT).show();
 
 
                         try {
@@ -213,11 +310,12 @@ public class MessageActivity extends AppCompatActivity {
                             if (res.getInt("reqcode") == 1) {
 
                                 JSONArray chats=res.getJSONArray("chats");
+                                ls.clear();
                                 for (int i=0; i<chats.length(); i++){
                                     JSONObject c=chats.getJSONObject(i);
 
                                     ls.add(new Chat(c.getInt("sender"),c.getInt("receiver"), c.getString("message"), c.getString("date"),c.getString("messageType"),c.getInt("seen")));
-                                    System.out.println(ls.get(i).getMessage());
+//                                    System.out.println(ls.get(i).getMessage());
                                     adapter.notifyDataSetChanged();
 
 
@@ -240,6 +338,7 @@ public class MessageActivity extends AppCompatActivity {
                 new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
+                        error.printStackTrace();
                         Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
                         Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
                     }
@@ -258,6 +357,11 @@ public class MessageActivity extends AppCompatActivity {
             }
         };
 
+        request.setRetryPolicy(new DefaultRetryPolicy(
+                50000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
         RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
         queue.add(request);
 
@@ -267,66 +371,142 @@ public class MessageActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         getMessage();
+//        Handler handler = new Handler();
+//        handler.postDelayed(new Runnable() {
+//            public void run() {
+//                getMessage();
+//            }
+//        }, 5000);
+
     }
 
-    //
-//    @Override
-//    protected void onResume() {
-//        super.onResume();
-//        FirebaseUser user =FirebaseAuth.getInstance().getCurrentUser();
-//        DatabaseReference ref=FirebaseDatabase.getInstance().getReference();
-//        Query query = ref.child("user").orderByChild("id").equalTo(user.getUid());
-//
-//        query.addListenerForSingleValueEvent(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot snapshot) {
-//                for (DataSnapshot appleSnapshot: snapshot.getChildren()) {
-//                    HashMap<String, Object> hashMap=new HashMap<>();
-//                    hashMap.put("status","online");
-//                    appleSnapshot.getRef().updateChildren(hashMap);
-//                }
-//
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//
-//            }
-//        });
-//    }
-//
-//    @Override
-//    protected void onPause() {
-//
-//
-//        super.onPause();
-//
-//        FirebaseUser user =FirebaseAuth.getInstance().getCurrentUser();
-//        DatabaseReference ref=FirebaseDatabase.getInstance().getReference();
-//        Query query = ref.child("user").orderByChild("id").equalTo(user.getUid());
-//
-//        query.addListenerForSingleValueEvent(new ValueEventListener() {
-//            @RequiresApi(api = Build.VERSION_CODES.O)
-//            @Override
-//            public void onDataChange(@NonNull DataSnapshot snapshot) {
-//                for (DataSnapshot appleSnapshot: snapshot.getChildren()) {
-//                    HashMap<String, Object> hashMap=new HashMap<>();
-//                    hashMap.put("status","offline");
-//                    appleSnapshot.getRef().updateChildren(hashMap);
-//                    HashMap<String, Object> hashMap1=new HashMap<>();
-//                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
-//                    LocalDateTime now = LocalDateTime.now();
-//                    String lastSeen="Last Seen "+ now.format(dtf);
-//                    hashMap1.put("lastSeen",lastSeen);
-//                    appleSnapshot.getRef().updateChildren(hashMap1);
-//                }
-//
-//            }
-//
-//            @Override
-//            public void onCancelled(@NonNull DatabaseError error) {
-//
-//            }
-//        });
-//    }
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if(requestCode==200 && resultCode==RESULT_OK){
+
+            List<String> imagePathList = new ArrayList<>();
+
+            if (data.getClipData() != null) {
+
+                int count = data.getClipData().getItemCount();
+                for (int i=0; i<count; i++) {
+                    Uri imgUri = data.getClipData().getItemAt(i).getUri();
+                    final InputStream imageStream;
+                    try {
+                        imageStream = getContentResolver().openInputStream(imgUri);
+                        Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
+                        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                        selectedImage.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                        byte[] byteArray = stream.toByteArray();
+                        final String imageData=Base64.getEncoder().encodeToString(byteArray);
+                        sendMessage(mPref.getInt("id", 0), id,imageData, "Image");
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            else if (data.getData() != null) {
+                Uri imgUri = data.getData();
+                final InputStream imageStream;
+                try {
+                    imageStream = getContentResolver().openInputStream(imgUri);
+                    Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
+                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                    selectedImage.compress(Bitmap.CompressFormat.JPEG, 50, stream);
+                    byte[] byteArray = stream.toByteArray();
+                    final String imageData=Base64.getEncoder().encodeToString(byteArray);
+                    sendMessage(mPref.getInt("id", 0), id,imageData, "Image");
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+
+
+            }
+
+            /*try{
+                Uri dpp=data.getData();
+                final InputStream imageStream = getContentResolver().openInputStream(dpp);
+                Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
+
+                LayoutInflater factory = LayoutInflater.from(MessageActivity.this);
+                final View view1 = factory.inflate(R.layout.image_pop_up, null);
+                ImageView myimg = view1.findViewById(R.id.myimg);
+                myimg.setImageBitmap(selectedImage);
+                Button send = view1.findViewById(R.id.send);
+                Button cancel = view1.findViewById(R.id.cancel);
+
+
+
+
+                AlertDialog.Builder builder = new AlertDialog.Builder(MessageActivity.this).setView(view1);
+
+                AlertDialog dialog=builder.create();
+
+                dialog.show();
+
+                send.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+
+                    }
+                });
+
+                cancel.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        dialog.dismiss();
+                    }
+                });
+
+            }
+            catch (Exception e){
+
+            }*/
+
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 10) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startRecording();
+            }else{
+                //User denied Permission.
+            }
+        }
+    }
+
+    private void startRecording() {
+        Toast.makeText(MessageActivity.this,fileName, Toast.LENGTH_SHORT).show();
+        recorder = new MediaRecorder();
+        recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+        recorder.setOutputFormat(MediaRecorder.OutputFormat.DEFAULT);
+        recorder.setOutputFile(fileName);
+        recorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_NB);
+
+        try {
+            recorder.prepare();
+            //Toast.makeText(RecordMusic.this, fileName, Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            Toast.makeText(MessageActivity.this, "Failed", Toast.LENGTH_LONG).show();
+        }
+
+        recorder.start();
+    }
+
+    private void stopRecording() {
+        recorder.stop();
+        recorder.release();
+        recorder = null;
+
+
+    }
+
+
+
 }

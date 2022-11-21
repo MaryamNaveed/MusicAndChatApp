@@ -27,6 +27,7 @@ import android.widget.Toast;
 
 
 import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
@@ -169,6 +170,11 @@ public class ChatFragment extends Fragment {
             }
         };
 
+        request.setRetryPolicy(new DefaultRetryPolicy(
+                10000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
         RequestQueue queue = Volley.newRequestQueue(getActivity());
         queue.add(request);
 
@@ -216,6 +222,12 @@ public class ChatFragment extends Fragment {
                         Toast.makeText(getActivity(), error.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
+
+        request1.setRetryPolicy(new DefaultRetryPolicy(
+                10000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
         RequestQueue queue1 = Volley.newRequestQueue(getActivity());
         queue.add(request1);
 
