@@ -229,11 +229,70 @@ public class ChatFragment extends Fragment {
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
         RequestQueue queue1 = Volley.newRequestQueue(getActivity());
-        queue.add(request1);
+        queue1.add(request1);
 
 
 
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
 
+
+
+        StringRequest request1 = new StringRequest(Request.Method.GET, Ip.ipAdd + "/getUsers.php",
+                new Response.Listener<String>() {
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void onResponse(String response) {
+                        System.out.println(response);
+
+                        ls.clear();
+
+                        try {
+                            JSONObject res = new JSONObject(response);
+
+                            if (res.getInt("reqcode") == 1) {
+                                JSONArray users=res.getJSONArray("users");
+                                for (int i=0; i<users.length(); i++){
+                                    JSONObject u=users.getJSONObject(i);
+                                    if(u.getInt("id")!=mPref.getInt("id", 0)){
+                                        ls.add(new User(u.getInt("id"),u.getString("name"), u.getString("email"), u.getString("password"),u.getString("gender"),u.getString("num"),u.getString("status1"),u.getString("lastSeen"),u.getString("deviceId"),u.getString("dp")));
+                                        adapter.notifyDataSetChanged();
+                                    }
+
+                                }
+
+
+
+                            } else {
+                                Toast.makeText(getActivity(), res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(getActivity(), "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(getActivity(), "Connection Error", Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(), error.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                });
+
+        request1.setRetryPolicy(new DefaultRetryPolicy(
+                10000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+        RequestQueue queue1 = Volley.newRequestQueue(getActivity());
+        queue1.add(request1);
+
+    }
 }

@@ -301,7 +301,7 @@ public class MessageActivity extends AppCompatActivity {
                     @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void onResponse(String response) {
-                        Toast.makeText(MessageActivity.this, "Getting", Toast.LENGTH_SHORT).show();
+//                        System.out.println(response);
 
 
                         try {
@@ -371,12 +371,77 @@ public class MessageActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         getMessage();
+        updateToseen();
 //        Handler handler = new Handler();
 //        handler.postDelayed(new Runnable() {
 //            public void run() {
 //                getMessage();
 //            }
 //        }, 5000);
+
+    }
+
+    public void updateToseen(){
+        StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/updateSeen.php",
+                new Response.Listener<String>() {
+                    @SuppressLint("NotifyDataSetChanged")
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void onResponse(String response) {
+                        System.out.println(response);
+
+
+                        try {
+                            JSONObject res = new JSONObject(response);
+
+                            if (res.getInt("reqcode") == 1) {
+
+
+
+
+
+                            } else {
+                                Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        error.printStackTrace();
+                        Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }) {
+            @Nullable
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+
+                int idd=mPref.getInt("id", 0);
+
+                params.put("sender", String.valueOf(idd));
+                params.put("receiver", String.valueOf(id));
+                params.put("seen", "1");
+
+                return params;
+            }
+        };
+
+        request.setRetryPolicy(new DefaultRetryPolicy(
+                50000,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+        RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+        queue.add(request);
 
     }
 
