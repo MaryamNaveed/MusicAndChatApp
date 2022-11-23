@@ -196,7 +196,7 @@ public class TabLayout extends AppCompatActivity {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         Toast.makeText(TabLayout.this, "Connection Error", Toast.LENGTH_LONG).show();
-                        Toast.makeText(TabLayout.this, error.getMessage(), Toast.LENGTH_LONG).show();
+//                        Toast.makeText(TabLayout.this, error.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 }) {
             @Nullable

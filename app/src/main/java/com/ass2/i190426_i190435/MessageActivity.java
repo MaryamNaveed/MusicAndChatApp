@@ -686,7 +686,7 @@ public class MessageActivity extends AppCompatActivity {
     }
 
     private void startRecording() {
-        Toast.makeText(MessageActivity.this,fileName, Toast.LENGTH_SHORT).show();
+//        Toast.makeText(MessageActivity.this,fileName, Toast.LENGTH_SHORT).show();
         recorder = new MediaRecorder();
         recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         recorder.setOutputFormat(MediaRecorder.OutputFormat.DEFAULT);

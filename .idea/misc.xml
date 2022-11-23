@@ -19,6 +19,7 @@
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/activity_sign_in.xml" value="0.17074275362318841" />
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/activity_sign_up.xml" value="0.17074275362318841" />
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/activity_tab_layout.xml" value="0.17074275362318841" />
+        <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/audio_pop_up.xml" value="0.17074275362318841" />
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/chat_row.xml" value="0.17074275362318841" />
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/chat_row_left.xml" value="0.17074275362318841" />
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/chat_row_right.xml" value="0.17074275362318841" />
@@ -29,7 +30,9 @@
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/image_pop_up.xml" value="0.1" />
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/image_row_left.xml" value="0.17074275362318841" />
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/image_row_right.xml" value="0.17074275362318841" />
+        <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/msg_pop_up.xml" value="0.17074275362318841" />
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/row_user.xml" value="0.17074275362318841" />
+        <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/text_pop_up.xml" value="0.1675213675213675" />
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/voice_row_left.xml" value="0.1" />
         <entry key="..\:/7thSemester/Smd/Assignment3/i190426_i190435/app/src/main/res/layout/voice_row_right.xml" value="0.1" />
       </map>

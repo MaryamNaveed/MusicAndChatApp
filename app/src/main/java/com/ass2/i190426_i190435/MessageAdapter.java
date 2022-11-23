@@ -1,6 +1,8 @@
 package com.ass2.i190426_i190435;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
@@ -12,18 +14,39 @@ import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.recyclerview.widget.RecyclerView;
 
 
+import com.android.volley.AuthFailureError;
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.StringRequest;
+import com.android.volley.toolbox.Volley;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -74,7 +97,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHo
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
-    public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull MyViewHolder holder, @SuppressLint("RecyclerView") int position) {
         Chat chat=ls.get(position);
 
         if(getItemViewType(position)==0 || getItemViewType(position)==1){
@@ -185,6 +208,121 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHo
 
         }
 
+        if(getItemViewType(position)==0 || getItemViewType(position)==2 || getItemViewType(position)==4){
+
+            holder.totalMsg.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+//                    Toast.makeText(c, "cliked", Toast.LENGTH_LONG).show();
+
+                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+                    LocalDateTime now = LocalDateTime.now();
+
+                    String strDate = now.format(dtf);
+
+                    LocalDateTime dateNow= LocalDateTime.parse(strDate, dtf);
+                    System.out.println(ls.get(position).getDate());
+                    LocalDateTime dateMsg = LocalDateTime.parse(ls.get(position).getDate(), dtf);
+
+                    long minutes = ChronoUnit.MINUTES.between(dateMsg, dateNow);
+
+
+                    if(minutes<=5){
+                        LayoutInflater factory = LayoutInflater.from(c);
+                        final View view1 = factory.inflate(R.layout.msg_pop_up, null);
+                        Button edit = view1.findViewById(R.id.edit);
+                        Button delete = view1.findViewById(R.id.delete);
+
+                        delete.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+
+                                Chat newChat = new Chat(ls.get(position).getSender(), ls.get(position).getReceiver(), ls.get(position).getMessage(), ls.get(position).getDate(), ls.get(position).getMessageType(), ls.get(position).getSeen());
+
+
+                                StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/deleteChat.php",
+                                        new Response.Listener<String>() {
+                                            @Override
+                                            public void onResponse(String response) {
+//                        System.out.println(response);
+
+
+                                                try {
+                                                    JSONObject res = new JSONObject(response);
+
+
+                                                        Toast.makeText(c, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                                                } catch (JSONException e) {
+                                                    e.printStackTrace();
+                                                    Toast.makeText(c, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                                                }
+
+
+                                            }
+                                        },
+                                        new Response.ErrorListener() {
+                                            @Override
+                                            public void onErrorResponse(VolleyError error) {
+                                                Toast.makeText(c, "Connection Error", Toast.LENGTH_LONG).show();
+
+                                            }
+                                        }) {
+                                    @Nullable
+                                    @Override
+                                    protected Map<String, String> getParams() throws AuthFailureError {
+                                        Map<String, String> params = new HashMap<>();
+                                        params.put("sender", String.valueOf(newChat.getSender()));
+                                        params.put("receiver", String.valueOf(newChat.getReceiver()));
+                                        params.put("message", newChat.getMessage());
+                                        params.put("messageType", newChat.getMessageType());
+                                        params.put("date", newChat.getDate());
+                                        params.put("seen",String.valueOf(0));
+
+
+
+                                        return params;
+                                    }
+                                };
+
+                                request.setRetryPolicy(new DefaultRetryPolicy(
+                                        50000,
+                                        DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                                        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+                                RequestQueue queue = Volley.newRequestQueue(c);
+                                queue.add(request);
+
+                            }
+                        });
+
+                        edit.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+
+                            }
+                        });
+
+
+                        AlertDialog.Builder builder = new AlertDialog.Builder(c).setView(view1);
+
+                        AlertDialog dialog=builder.create();
+
+                        dialog.show();
+                    }
+                    else{
+                        Toast.makeText(c, "Cannot Edit or  Delete Message", Toast.LENGTH_LONG).show();
+
+                    }
+
+                }
+            });
+
+
+
+        }
+
 
 
 
@@ -205,6 +343,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHo
         Handler mHandler = new Handler();
         int pauseLength=0;
         boolean isPause=false, firstTime=true;
+        LinearLayout totalMsg;
 
         MediaPlayer mediaPlayer = new MediaPlayer();
         public MyViewHolder(@NonNull View itemView) {
@@ -216,6 +355,8 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHo
 
                     img=itemView.findViewById(R.id.img);
                     seekBar=itemView.findViewById(R.id.seekBar);
+
+                    totalMsg=itemView.findViewById(R.id.totalMsg);
         }
     }
 

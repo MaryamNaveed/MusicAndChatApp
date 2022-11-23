@@ -3,6 +3,7 @@
     android:layout_width="match_parent"
     android:gravity="right"
     android:layout_height="wrap_content"
+    android:id="@+id/totalMsg"
     android:orientation="vertical">
 
     <ImageView
