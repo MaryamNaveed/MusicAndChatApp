@@ -4,9 +4,11 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.os.Build;
@@ -15,6 +17,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
@@ -39,6 +42,9 @@ import com.android.volley.toolbox.Volley;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
@@ -297,12 +303,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHo
                             }
                         });
 
-                        edit.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
 
-                            }
-                        });
 
 
                         AlertDialog.Builder builder = new AlertDialog.Builder(c).setView(view1);
@@ -310,6 +311,353 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHo
                         AlertDialog dialog=builder.create();
 
                         dialog.show();
+
+
+                        edit.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                dialog.dismiss();
+
+
+                                if(ls.get(position).getMessageType().equals("Text")){
+
+                                    LayoutInflater factory = LayoutInflater.from(c);
+                                    final View view1 = factory.inflate(R.layout.text_pop_up, null);
+                                    EditText mytext = view1.findViewById(R.id.mytext);
+                                    Button send= view1.findViewById(R.id.send);
+                                    Button cancel= view1.findViewById(R.id.cancel);
+
+                                    AlertDialog.Builder builder = new AlertDialog.Builder(c).setView(view1);
+
+                                    AlertDialog dialog=builder.create();
+
+                                    dialog.show();
+
+                                    cancel.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View view) {
+                                            dialog.dismiss();
+
+                                        }
+                                    });
+
+                                    send.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View view) {
+                                            dialog.dismiss();
+
+                                            Chat newChat = new Chat(ls.get(position).getSender(), ls.get(position).getReceiver(), ls.get(position).getMessage(), ls.get(position).getDate(), ls.get(position).getMessageType(), ls.get(position).getSeen());
+
+
+                                            StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/editChat.php",
+                                                    new Response.Listener<String>() {
+                                                        @Override
+                                                        public void onResponse(String response) {
+
+                                                            try {
+                                                                JSONObject res = new JSONObject(response);
+
+
+                                                                Toast.makeText(c, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                                                            } catch (JSONException e) {
+                                                                e.printStackTrace();
+                                                                Toast.makeText(c, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                                                            }
+
+
+                                                        }
+                                                    },
+                                                    new Response.ErrorListener() {
+                                                        @Override
+                                                        public void onErrorResponse(VolleyError error) {
+                                                            Toast.makeText(c, "Connection Error", Toast.LENGTH_LONG).show();
+
+                                                        }
+                                                    }) {
+                                                @Nullable
+                                                @Override
+                                                protected Map<String, String> getParams() throws AuthFailureError {
+                                                    Map<String, String> params = new HashMap<>();
+                                                    params.put("sender", String.valueOf(newChat.getSender()));
+                                                    params.put("receiver", String.valueOf(newChat.getReceiver()));
+                                                    params.put("message", newChat.getMessage());
+                                                    params.put("messageType", newChat.getMessageType());
+                                                    params.put("date", newChat.getDate());
+                                                    params.put("seen",String.valueOf(0));
+                                                    params.put("newMsg", mytext.getText().toString());
+
+
+
+                                                    return params;
+                                                }
+                                            };
+
+                                            request.setRetryPolicy(new DefaultRetryPolicy(
+                                                    50000,
+                                                    DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                                                    DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+                                            RequestQueue queue = Volley.newRequestQueue(c);
+                                            queue.add(request);
+
+                                        }
+
+
+                                    });
+
+                                }
+                                else if(ls.get(position).getMessageType().equals("Image")){
+
+
+
+                                        LayoutInflater factory = LayoutInflater.from(c);
+                                        final View view1 = factory.inflate(R.layout.image_pop_up, null);
+                                        ImageView myimg=  view1.findViewById(R.id.myimg);
+                                        Button send= view1.findViewById(R.id.send);
+                                        Button cancel= view1.findViewById(R.id.cancel);
+
+                                        AlertDialog.Builder builder = new AlertDialog.Builder(c).setView(view1);
+
+                                        AlertDialog dialog=builder.create();
+
+                                        dialog.show();
+
+
+
+                                        cancel.setOnClickListener(new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
+                                                dialog.dismiss();
+
+                                            }
+                                        });
+
+                                        myimg.setOnClickListener(new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
+
+                                                if (c instanceof MessageActivity) {
+                                                    ((MessageActivity) c).getImage(myimg);
+                                                    holder.image1=true;
+                                                }
+
+                                            }
+                                        });
+
+                                        send.setOnClickListener(new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View view) {
+
+                                                if(holder.image1){
+                                                    holder.image1=false;
+                                                    dialog.dismiss();
+                                                    Bitmap bmp = ((BitmapDrawable)myimg.getDrawable()).getBitmap();
+                                                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                                                    bmp.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+                                                    byte[] byteArray = stream.toByteArray();
+                                                    final  String selectedImage =Base64.getEncoder().encodeToString(byteArray);
+                                                    Chat newChat = new Chat(ls.get(position).getSender(), ls.get(position).getReceiver(), ls.get(position).getMessage(), ls.get(position).getDate(), ls.get(position).getMessageType(), ls.get(position).getSeen());
+
+
+                                                    StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/editChat.php",
+                                                            new Response.Listener<String>() {
+                                                                @Override
+                                                                public void onResponse(String response) {
+
+                                                                    try {
+                                                                        JSONObject res = new JSONObject(response);
+
+
+                                                                        Toast.makeText(c, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                                                                    } catch (JSONException e) {
+                                                                        e.printStackTrace();
+                                                                        Toast.makeText(c, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                                                                    }
+
+
+                                                                }
+                                                            },
+                                                            new Response.ErrorListener() {
+                                                                @Override
+                                                                public void onErrorResponse(VolleyError error) {
+                                                                    Toast.makeText(c, "Connection Error", Toast.LENGTH_LONG).show();
+
+                                                                }
+                                                            }) {
+                                                        @Nullable
+                                                        @Override
+                                                        protected Map<String, String> getParams() throws AuthFailureError {
+                                                            Map<String, String> params = new HashMap<>();
+                                                            params.put("sender", String.valueOf(newChat.getSender()));
+                                                            params.put("receiver", String.valueOf(newChat.getReceiver()));
+                                                            params.put("message", newChat.getMessage());
+                                                            params.put("messageType", newChat.getMessageType());
+                                                            params.put("date", newChat.getDate());
+                                                            params.put("seen",String.valueOf(0));
+                                                            params.put("newMsg",selectedImage );
+
+
+
+                                                            return params;
+                                                        }
+                                                    };
+
+                                                    request.setRetryPolicy(new DefaultRetryPolicy(
+                                                            50000,
+                                                            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                                                            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+                                                    RequestQueue queue = Volley.newRequestQueue(c);
+                                                    queue.add(request);
+
+                                                }
+                                                else {
+                                                    Toast.makeText(c, "Please select an image", Toast.LENGTH_SHORT).show();
+                                                }
+
+
+
+
+                                            }
+
+
+                                        });
+
+                                    }
+                                else if(ls.get(position).getMessageType().equals("Audio")){
+
+                                    LayoutInflater factory = LayoutInflater.from(c);
+                                    final View view1 = factory.inflate(R.layout.audio_pop_up, null);
+
+                                    Button send= view1.findViewById(R.id.send);
+                                    Button cancel= view1.findViewById(R.id.cancel);
+
+                                    AlertDialog.Builder builder = new AlertDialog.Builder(c).setView(view1);
+
+                                    AlertDialog dialog=builder.create();
+
+                                    dialog.show();
+
+                                    if (c instanceof MessageActivity) {
+                                        ((MessageActivity) c).startRecording();
+                                        holder.image1=true;
+                                    }
+
+                                    cancel.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View view) {
+                                            if(holder.image1){
+                                                ((MessageActivity) c).stopRecording();
+                                            }
+                                            dialog.dismiss();
+                                            ((MessageActivity) c).isVoice=false;
+
+                                        }
+                                    });
+
+                                    send.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View view) {
+                                            dialog.dismiss();
+                                            holder.image1 = false;
+
+
+                                            if (c instanceof MessageActivity) {
+                                                ((MessageActivity) c).stopRecording();
+                                                ((MessageActivity) c).isVoice=false;
+                                                holder.image1 = true;
+                                                try {
+                                                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                                                    BufferedInputStream in = new BufferedInputStream(new FileInputStream(((MessageActivity) c).fileName));
+                                                    int read;
+                                                    byte[] buff = new byte[1024];
+                                                    while ((read = in.read(buff)) > 0) {
+                                                        out.write(buff, 0, read);
+                                                    }
+                                                    out.flush();
+                                                    byte[] audioBytes = out.toByteArray();
+                                                    final String msg = Base64.getEncoder().encodeToString(audioBytes);
+                                                    Chat newChat = new Chat(ls.get(position).getSender(), ls.get(position).getReceiver(), ls.get(position).getMessage(), ls.get(position).getDate(), ls.get(position).getMessageType(), ls.get(position).getSeen());
+
+
+                                                    StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/editChat.php",
+                                                            new Response.Listener<String>() {
+                                                                @Override
+                                                                public void onResponse(String response) {
+
+                                                                    try {
+                                                                        JSONObject res = new JSONObject(response);
+
+
+                                                                        Toast.makeText(c, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                                                                    } catch (JSONException e) {
+                                                                        e.printStackTrace();
+                                                                        Toast.makeText(c, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                                                                    }
+
+
+                                                                }
+                                                            },
+                                                            new Response.ErrorListener() {
+                                                                @Override
+                                                                public void onErrorResponse(VolleyError error) {
+                                                                    Toast.makeText(c, "Connection Error", Toast.LENGTH_LONG).show();
+
+                                                                }
+                                                            }) {
+                                                        @Nullable
+                                                        @Override
+                                                        protected Map<String, String> getParams() throws AuthFailureError {
+                                                            Map<String, String> params = new HashMap<>();
+                                                            params.put("sender", String.valueOf(newChat.getSender()));
+                                                            params.put("receiver", String.valueOf(newChat.getReceiver()));
+                                                            params.put("message", newChat.getMessage());
+                                                            params.put("messageType", newChat.getMessageType());
+                                                            params.put("date", newChat.getDate());
+                                                            params.put("seen",String.valueOf(0));
+                                                            params.put("newMsg", msg);
+
+
+
+                                                            return params;
+                                                        }
+                                                    };
+
+                                                    request.setRetryPolicy(new DefaultRetryPolicy(
+                                                            50000,
+                                                            DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                                                            DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
+
+                                                    RequestQueue queue = Volley.newRequestQueue(c);
+                                                    queue.add(request);
+
+
+
+                                                } catch (Exception e) {
+
+                                                }
+
+
+                                            }
+
+
+                                        }
+
+
+                                    });
+
+                                }
+
+
+
+
+
+                            }
+
+                        });
                     }
                     else{
                         Toast.makeText(c, "Cannot Edit or  Delete Message", Toast.LENGTH_LONG).show();
@@ -344,6 +692,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHo
         int pauseLength=0;
         boolean isPause=false, firstTime=true;
         LinearLayout totalMsg;
+        boolean image1=false;
 
         MediaPlayer mediaPlayer = new MediaPlayer();
         public MyViewHolder(@NonNull View itemView) {
@@ -364,6 +713,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MyViewHo
     public int getItemViewType(int position){
 
         SharedPreferences mPref;
+
         SharedPreferences.Editor editmPref;
         mPref= c.getSharedPreferences("com.ass2.i190426_i190435", c.MODE_PRIVATE);
         editmPref=mPref.edit();

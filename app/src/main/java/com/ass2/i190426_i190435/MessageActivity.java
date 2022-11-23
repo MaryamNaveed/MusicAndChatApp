@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -58,6 +59,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -70,7 +72,7 @@ public class MessageActivity extends AppCompatActivity {
     TextView name, seen;
     EditText msg;
     ImageButton send, voice;
-    ImageView image;
+    ImageView image, imgg;
     boolean isVoice=false;
     MediaRecorder recorder;
     String fileName;
@@ -87,6 +89,8 @@ public class MessageActivity extends AppCompatActivity {
 
     SharedPreferences mPref;
     SharedPreferences.Editor editmPref;
+
+    Bitmap selectedImage=null;
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -136,7 +140,7 @@ public class MessageActivity extends AppCompatActivity {
 
         ContextWrapper cw = new ContextWrapper(getApplicationContext());
         File music = cw.getExternalFilesDir(Environment.DIRECTORY_MUSIC);
-        File file = new File(music, "audio"+".mp3");
+        File file = new File(music, "audio" + ".mp3");
         fileName=file.getPath();
 
         voice.setOnClickListener(new View.OnClickListener() {
@@ -157,7 +161,7 @@ public class MessageActivity extends AppCompatActivity {
                     } else {
                         startRecording();
                     }
-                    Toast.makeText(MessageActivity.this, "Recording started", Toast.LENGTH_LONG).show();
+//                    Toast.makeText(MessageActivity.this, "Recording started", Toast.LENGTH_LONG).show();
 
                 }
             }
@@ -186,8 +190,6 @@ public class MessageActivity extends AppCompatActivity {
                     isVoice=false;
                     voice.setImageResource(R.drawable.ic_baseline_mic_24);
                     stopRecording();
-
-
 
                     try{
                         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -671,6 +673,41 @@ public class MessageActivity extends AppCompatActivity {
             }*/
 
         }
+
+        if(requestCode==100 && resultCode==RESULT_OK){
+
+            try {
+                final Uri dpp = data.getData();
+                final InputStream imageStream = getContentResolver().openInputStream(dpp);
+                selectedImage = BitmapFactory.decodeStream(imageStream);
+                imgg.setImageBitmap(selectedImage);
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(MessageActivity.this, "Something went wrong", Toast.LENGTH_LONG).show();
+            }
+
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public String getImage(ImageView img){
+
+        imgg=img;
+
+        selectedImage=null;
+        Intent i = new Intent();
+        i.setType("image/*");
+        i.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(
+                Intent.createChooser(i, "Choose your Dp"),
+                100
+        );
+
+
+        final String imageData="";
+        return imageData;
+
     }
 
     @Override
@@ -685,8 +722,12 @@ public class MessageActivity extends AppCompatActivity {
         }
     }
 
-    private void startRecording() {
-//        Toast.makeText(MessageActivity.this,fileName, Toast.LENGTH_SHORT).show();
+    public void startRecording() {
+        ContextWrapper cw = new ContextWrapper(getApplicationContext());
+        File music = cw.getExternalFilesDir(Environment.DIRECTORY_MUSIC);
+        File file = new File(music, "audio" + Calendar.getInstance().getTimeInMillis() + ".mp3");
+        fileName=file.getPath();
+        Toast.makeText(MessageActivity.this,"Recording Started", Toast.LENGTH_SHORT).show();
         recorder = new MediaRecorder();
         recorder.setAudioSource(MediaRecorder.AudioSource.MIC);
         recorder.setOutputFormat(MediaRecorder.OutputFormat.DEFAULT);
@@ -703,7 +744,7 @@ public class MessageActivity extends AppCompatActivity {
         recorder.start();
     }
 
-    private void stopRecording() {
+    public void stopRecording() {
         recorder.stop();
         recorder.release();
         recorder = null;

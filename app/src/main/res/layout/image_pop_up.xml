@@ -10,8 +10,9 @@
         android:id="@+id/myimg"
         android:layout_gravity="center"
         android:layout_margin="20dp"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_width="200dp"
+        android:src="@drawable/addphoto"
+        android:layout_height="200dp">
 
     </ImageView>
 
