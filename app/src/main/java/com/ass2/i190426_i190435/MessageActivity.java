@@ -344,7 +344,7 @@ public class MessageActivity extends AppCompatActivity {
                     public void onErrorResponse(VolleyError error) {
                         error.printStackTrace();
                         Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
-                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 }) {
             @Nullable
@@ -408,7 +408,7 @@ public class MessageActivity extends AppCompatActivity {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
-                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 }) {
             @Nullable
@@ -501,7 +501,7 @@ public class MessageActivity extends AppCompatActivity {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
-                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 }) {
             @Nullable
@@ -558,7 +558,7 @@ public class MessageActivity extends AppCompatActivity {
                     public void onErrorResponse(VolleyError error) {
                         error.printStackTrace();
                         Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
-                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 }) {
             @Nullable

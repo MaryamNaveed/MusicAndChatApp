@@ -143,7 +143,7 @@ public class ChatFragment extends Fragment {
                         } catch (JSONException e) {
                             e.printStackTrace();
                             Toast.makeText(getActivity(), "Cannot Parse JSON", Toast.LENGTH_LONG).show();
-                            Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
+//                            Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
                         }
 
 
@@ -153,7 +153,7 @@ public class ChatFragment extends Fragment {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         Toast.makeText(getActivity(), "Connection Error", Toast.LENGTH_LONG).show();
-                        Toast.makeText(getActivity(), error.getMessage(), Toast.LENGTH_LONG).show();
+//                        Toast.makeText(getActivity(), error.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 }) {
             @Nullable
@@ -209,7 +209,7 @@ public class ChatFragment extends Fragment {
                         } catch (JSONException e) {
                             e.printStackTrace();
                             Toast.makeText(getActivity(), "Cannot Parse JSON", Toast.LENGTH_LONG).show();
-                            Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
+//                            Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
                         }
 
 
@@ -219,7 +219,7 @@ public class ChatFragment extends Fragment {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         Toast.makeText(getActivity(), "Connection Error", Toast.LENGTH_LONG).show();
-                        Toast.makeText(getActivity(), error.getMessage(), Toast.LENGTH_LONG).show();
+//                        Toast.makeText(getActivity(), error.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
 
@@ -272,7 +272,7 @@ public class ChatFragment extends Fragment {
                         } catch (JSONException e) {
                             e.printStackTrace();
                             Toast.makeText(getActivity(), "Cannot Parse JSON", Toast.LENGTH_LONG).show();
-                            Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
+//                            Toast.makeText(getActivity(), e.getMessage(), Toast.LENGTH_LONG).show();
                         }
 
 
@@ -282,7 +282,7 @@ public class ChatFragment extends Fragment {
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         Toast.makeText(getActivity(), "Connection Error", Toast.LENGTH_LONG).show();
-                        Toast.makeText(getActivity(), error.getMessage(), Toast.LENGTH_LONG).show();
+//                        Toast.makeText(getActivity(), error.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
 
