@@ -74,6 +74,8 @@ public class MessageActivity extends AppCompatActivity {
     boolean isVoice=false;
     MediaRecorder recorder;
     String fileName;
+    Handler handler = new Handler();
+    Runnable runnable;
 
     String userName, userDp, seenUser, statusUser;
     int id;
@@ -367,17 +369,154 @@ public class MessageActivity extends AppCompatActivity {
 
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public void toOnline(String st){
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        LocalDateTime now = LocalDateTime.now();
+        String lastSeen = "Last Seen " + dtf.format(now);
+
+
+        StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/updateLastseenandStatus.php",
+                new Response.Listener<String>() {
+                    @Override
+                    public void onResponse(String response) {
+                        System.out.println(response);
+
+
+                        try {
+                            JSONObject res = new JSONObject(response);
+
+                            if (res.getInt("reqcode") == 1) {
+
+
+
+                            } else {
+                                Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }) {
+            @Nullable
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+                params.put("id", String.valueOf(mPref.getInt("id", 0)));
+                params.put("lastSeen", lastSeen);
+                params.put("status1", st);
+
+
+                return params;
+            }
+        };
+
+        RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+        queue.add(request);
+    }
+
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
     protected void onResume() {
-        super.onResume();
+
         getMessage();
         updateToseen();
-//        Handler handler = new Handler();
-//        handler.postDelayed(new Runnable() {
-//            public void run() {
-//                getMessage();
-//            }
-//        }, 5000);
+        toOnline("online");
+
+
+        handler.postDelayed(runnable =new Runnable() {
+            public void run() {
+//                Toast.makeText(MessageActivity.this, "Refreshed", Toast.LENGTH_SHORT).show();
+                getMessage();
+                updateToseen();
+                getUserStatus();
+                handler.postDelayed(runnable, 3000);
+            }
+        }, 3000);
+        super.onResume();
+
+    }
+
+
+
+    public void getUserStatus(){
+//        Toast.makeText(MessageActivity.this, "1", Toast.LENGTH_SHORT).show();
+        StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getUserbyId.php",
+                new Response.Listener<String>() {
+
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void onResponse(String response) {
+                        System.out.println(response);
+//                        Toast.makeText(MessageActivity.this, "2", Toast.LENGTH_SHORT).show();
+
+
+                        try {
+                            JSONObject res = new JSONObject(response);
+
+                            if (res.getInt("reqcode") == 1) {
+                                JSONObject user=res.getJSONObject("user");
+                                seenUser=user.getString("lastSeen");
+                                statusUser=user.getString("status1");
+
+//                                Toast.makeText(MessageActivity.this, statusUser, Toast.LENGTH_SHORT).show();
+
+                                if(statusUser.equals("offline")){
+                                    seen.setText(seenUser);
+                                }
+                                else{
+                                    seen.setText(statusUser);
+                                }
+
+
+
+
+                            } else {
+                                Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }) {
+            @Nullable
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+
+
+                params.put("id", String.valueOf(id));
+
+
+                return params;
+            }
+        };
+
+        RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+        queue.add(request);
 
     }
 
@@ -570,6 +709,14 @@ public class MessageActivity extends AppCompatActivity {
         recorder = null;
 
 
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    @Override
+    protected void onPause() {
+        handler.removeCallbacks(runnable); //stop handler when activity not visible
+        toOnline("offline");
+        super.onPause();
     }
 
 

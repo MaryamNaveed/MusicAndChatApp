@@ -8,6 +8,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -100,91 +101,102 @@ public class UserAdpater extends RecyclerView.Adapter<UserAdpater.MyViewHolder> 
 
         });
 
-        StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getLastMessage.php",
-                new Response.Listener<String>() {
-                    @SuppressLint("NotifyDataSetChanged")
-                    @RequiresApi(api = Build.VERSION_CODES.O)
-                    @Override
-                    public void onResponse(String response) {
+        Handler handler=new Handler();
+        Runnable runnable;
+
+        handler.postDelayed(runnable =new Runnable() {
+            public void run() {
+                StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getLastMessage.php",
+                        new Response.Listener<String>() {
+                            @SuppressLint("NotifyDataSetChanged")
+                            @RequiresApi(api = Build.VERSION_CODES.O)
+                            @Override
+                            public void onResponse(String response) {
 //                        System.out.println(response);
 
 
-                        try {
-                            JSONObject res = new JSONObject(response);
+                                try {
+                                    JSONObject res = new JSONObject(response);
 
-                            if (res.getInt("reqcode") == 1) {
+                                    if (res.getInt("reqcode") == 1) {
 
-                                JSONObject chat=res.getJSONObject("chat");
-                                SharedPreferences mPref;
-                                mPref= c.getSharedPreferences("com.ass2.i190426_i190435", Context.MODE_PRIVATE);
-                                int idd=mPref.getInt("id", 0);
+                                        JSONObject chat=res.getJSONObject("chat");
+                                        SharedPreferences mPref;
+                                        mPref= c.getSharedPreferences("com.ass2.i190426_i190435", Context.MODE_PRIVATE);
+                                        int idd=mPref.getInt("id", 0);
 
-                                if(chat.getInt("seen")==0 && chat.getInt("sender")==ls.get(position).getId() && chat.getInt("receiver")==idd){
+                                        if(chat.getInt("seen")==0 && chat.getInt("sender")==ls.get(position).getId() && chat.getInt("receiver")==idd){
 
-                                    holder.seenornot.setImageResource(R.drawable.ic_baseline_stop_24);
+                                            holder.seenornot.setImageResource(R.drawable.ic_baseline_stop_24);
+                                        }
+                                        else {
+                                            System.out.println(chat.getString("message"));
+                                            holder.seenornot.setImageResource(0);
+                                        }
+
+                                        if(chat.getString("messageType").equals("Text")){
+
+                                            holder.msg.setText(chat.getString("message"));
+                                        }
+                                        else if(chat.getString("messageType").equals("Audio")){
+                                            holder.msg.setText("Voice Message");
+                                        }
+                                        else{
+                                            holder.msg.setText("Photo");
+                                        }
+
+
+
+
+                                    } else {
+                                        Toast.makeText(c, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+                                    }
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                    Toast.makeText(c, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                                    Toast.makeText(c, e.getMessage(), Toast.LENGTH_LONG).show();
                                 }
-                                else {
-                                    System.out.println(chat.getString("message"));
-                                    holder.seenornot.setImageResource(0);
-                                }
-
-                                if(chat.getString("messageType").equals("Text")){
-
-                                    holder.msg.setText(chat.getString("message"));
-                                }
-                                else if(chat.getString("messageType").equals("Voice")){
-                                    holder.msg.setText("Voice Message");
-                                }
-                                else{
-                                    holder.msg.setText("Photo");
-                                }
 
 
-
-
-                            } else {
-                                Toast.makeText(c, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
                             }
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                            Toast.makeText(c, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
-                            Toast.makeText(c, e.getMessage(), Toast.LENGTH_LONG).show();
-                        }
-
-
-                    }
-                },
-                new Response.ErrorListener() {
+                        },
+                        new Response.ErrorListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError error) {
+                                error.printStackTrace();
+                                Toast.makeText(c, "Connection Error", Toast.LENGTH_LONG).show();
+                                Toast.makeText(c, error.getMessage(), Toast.LENGTH_LONG).show();
+                            }
+                        }) {
+                    @Nullable
                     @Override
-                    public void onErrorResponse(VolleyError error) {
-                        error.printStackTrace();
-                        Toast.makeText(c, "Connection Error", Toast.LENGTH_LONG).show();
-                        Toast.makeText(c, error.getMessage(), Toast.LENGTH_LONG).show();
+                    protected Map<String, String> getParams() throws AuthFailureError {
+                        Map<String, String> params = new HashMap<>();
+                        SharedPreferences mPref;
+                        mPref= c.getSharedPreferences("com.ass2.i190426_i190435", Context.MODE_PRIVATE);
+
+                        int idd=mPref.getInt("id", 0);
+
+                        params.put("sender", String.valueOf(idd));
+                        params.put("receiver", String.valueOf(ls.get(position).getId()));
+
+                        return params;
                     }
-                }) {
-            @Nullable
-            @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
-                Map<String, String> params = new HashMap<>();
-                SharedPreferences mPref;
-                mPref= c.getSharedPreferences("com.ass2.i190426_i190435", Context.MODE_PRIVATE);
+                };
 
-                int idd=mPref.getInt("id", 0);
+                request.setRetryPolicy(new DefaultRetryPolicy(
+                        50000,
+                        DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                        DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
-                params.put("sender", String.valueOf(idd));
-                params.put("receiver", String.valueOf(ls.get(position).getId()));
+                RequestQueue queue = Volley.newRequestQueue(c);
+                queue.add(request);
 
-                return params;
+                handler.postDelayed(this, 3000);
             }
-        };
+        }, 3000);
 
-        request.setRetryPolicy(new DefaultRetryPolicy(
-                50000,
-                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
 
-        RequestQueue queue = Volley.newRequestQueue(c);
-        queue.add(request);
 
 
     }
