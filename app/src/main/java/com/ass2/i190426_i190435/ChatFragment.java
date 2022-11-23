@@ -79,7 +79,7 @@ public class ChatFragment extends Fragment {
         drawer=getView().findViewById(R.id.drawer);
         logout=getView().findViewById(R.id.logout);
         username=getView().findViewById(R.id.userName);
-        dp=getView().findViewById(R.id.dp);
+        dp=getView().findViewById(R.id.dpImage);
         profileImage=getView().findViewById(R.id.profileImage);
         menu=getView().findViewById(R.id.menu);
 
