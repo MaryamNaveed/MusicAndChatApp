@@ -41,6 +41,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class TabLayout extends AppCompatActivity {
 
@@ -158,6 +159,8 @@ public class TabLayout extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
+
+
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
         String lastSeen = "Last Seen " + dtf.format(now);
@@ -208,6 +211,12 @@ public class TabLayout extends AppCompatActivity {
                 return params;
             }
         };
+
+        try {
+            TimeUnit.SECONDS.sleep(3);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         RequestQueue queue = Volley.newRequestQueue(TabLayout.this);
         queue.add(request);
