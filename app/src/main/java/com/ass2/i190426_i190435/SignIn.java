@@ -25,6 +25,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.onesignal.OneSignal;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -74,20 +75,69 @@ public class SignIn extends AppCompatActivity {
                         new Response.Listener<String>() {
                             @Override
                             public void onResponse(String response) {
-                                System.out.println(response);
+//                                System.out.println(response);
 
 
                                 try {
                                     JSONObject res = new JSONObject(response);
 
                                     if (res.getInt("reqcode") == 1) {
-                                        Toast.makeText(SignIn.this, "Signed In", Toast.LENGTH_LONG).show();
-                                        editmPref.putBoolean("loggedIn", true);
-                                        editmPref.putInt("id", res.getInt("id"));
-                                        editmPref.apply();
-                                        editmPref.commit();
-                                        Intent intent=new Intent(SignIn.this, TabLayout.class);
-                                        startActivity(intent);
+
+                                        int idUser=res.getInt("id");
+
+//                                        Toast.makeText(SignIn.this, "User Found", Toast.LENGTH_LONG).show();
+
+                                        StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/updateDeviceId.php",
+                                                new Response.Listener<String>() {
+                                                    @Override
+                                                    public void onResponse(String response) {
+
+                                                        try {
+                                                            JSONObject res1 = new JSONObject(response);
+
+                                                            if(res1.getInt("reqcode")==1){
+                                                                Toast.makeText(SignIn.this, "Signed In", Toast.LENGTH_LONG).show();
+                                                                editmPref.putBoolean("loggedIn", true);
+                                                                editmPref.putInt("id", idUser);
+                                                                editmPref.apply();
+                                                                editmPref.commit();
+                                                                Intent intent=new Intent(SignIn.this, TabLayout.class);
+                                                                startActivity(intent);
+                                                            }
+                                                            else {
+                                                                Toast.makeText(SignIn.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+                                                            }
+                                                        } catch (JSONException e) {
+                                                            e.printStackTrace();
+                                                            Toast.makeText(SignIn.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+                                                        }
+
+
+
+                                                    }
+                                                },
+                                                new Response.ErrorListener() {
+                                                    @Override
+                                                    public void onErrorResponse(VolleyError error) {
+                                                        Toast.makeText(SignIn.this, "Connection Error", Toast.LENGTH_LONG).show();
+
+                                                    }
+                                                }){
+                                            @Nullable
+                                            @Override
+                                            protected Map<String, String> getParams() throws AuthFailureError {
+                                                Map<String, String> params = new HashMap<>();
+
+                                                params.put("id", String.valueOf(idUser));
+                                                params.put("deviceId", OneSignal.getDeviceState().getUserId());
+
+                                                return params;
+                                            }
+                                        };
+
+                                        RequestQueue queue = Volley.newRequestQueue(SignIn.this);
+                                        queue.add(request);
+
 
                                     } else {
                                         Toast.makeText(SignIn.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();

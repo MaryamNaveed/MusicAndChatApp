@@ -10,12 +10,14 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.AlertDialog;
+import android.app.ActivityManager;
+import android.content.ContentResolver;
+import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.ContentObserver;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaRecorder;
@@ -24,9 +26,8 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
-import android.view.LayoutInflater;
+import android.os.Looper;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
@@ -34,6 +35,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
+import com.akexorcist.screenshotdetection.ScreenshotDetectionDelegate;
 import com.android.volley.AuthFailureError;
 import com.android.volley.DefaultRetryPolicy;
 import com.android.volley.Request;
@@ -42,6 +44,15 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.onesignal.OneSignal;
+import com.sinch.android.rtc.ClientRegistration;
+import com.sinch.android.rtc.Sinch;
+import com.sinch.android.rtc.SinchClient;
+import com.sinch.android.rtc.SinchClientListener;
+import com.sinch.android.rtc.SinchError;
+import com.sinch.android.rtc.calling.Call;
+import com.sinch.android.rtc.calling.CallClient;
+import com.sinch.android.rtc.calling.CallClientListener;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -52,7 +63,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -66,8 +76,9 @@ import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-public class MessageActivity extends AppCompatActivity {
+public class MessageActivity extends AppCompatActivity implements ScreenshotDetectionDelegate.ScreenshotDetectionListener {
 
+    ScreenshotDetectionDelegate screenshotDetectionDelegate= new ScreenshotDetectionDelegate(MessageActivity.this, MessageActivity.this);
     CircleImageView profile;
     TextView name, seen;
     EditText msg;
@@ -91,6 +102,9 @@ public class MessageActivity extends AppCompatActivity {
     SharedPreferences.Editor editmPref;
 
     Bitmap selectedImage=null;
+
+    ContentObserver contentObserver;
+    SinchClient client;
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -246,6 +260,18 @@ public class MessageActivity extends AppCompatActivity {
 
                             if (res.getInt("reqcode") == 1) {
 
+                                if(messageType.equals("Text")){
+                                    sendUserNotification(receiver, message);
+                                }
+                                else if(messageType.equals("Audio")){
+                                    sendUserNotification(receiver, "Voice Message");
+                                }
+                                if(messageType.equals("Image")){
+                                    sendUserNotification(receiver, "Photo");
+                                }
+
+
+
 
                             } else {
                                 Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
@@ -333,7 +359,7 @@ public class MessageActivity extends AppCompatActivity {
                         } catch (JSONException e) {
                             e.printStackTrace();
                             Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
-                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
                         }
 
 
@@ -398,7 +424,7 @@ public class MessageActivity extends AppCompatActivity {
                         } catch (JSONException e) {
                             e.printStackTrace();
                             Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
-                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
                         }
 
 
@@ -437,6 +463,19 @@ public class MessageActivity extends AppCompatActivity {
         updateToseen();
         toOnline("online");
 
+        screenshotDetectionDelegate.startScreenshotDetection();
+
+//        contentObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
+//            @Override
+//            public void onChange ( boolean selfChange, Uri uri){
+//                super.onChange(selfChange, uri);
+//            }
+//        };
+//
+//        ContentResolver.Reg
+
+        initSinch();
+
 
         handler.postDelayed(runnable =new Runnable() {
             public void run() {
@@ -451,6 +490,76 @@ public class MessageActivity extends AppCompatActivity {
 
     }
 
+    public void initSinch(){
+
+//        client = Sinch.getSinchClientBuilder()
+//                .context(this)
+//                .applicationKey("")
+//                .environmentHost("").build();
+//
+//        client.startListeningOnActiveConnection();
+//
+//        client.addSinchClientListener(new MySinchClientListener());
+//
+//        client.getCallClient().setRespectNativeCalls(false);
+//
+//        client.getCallClient().addCallClientListener(new MySinchCallClientListener());
+//
+//        client.start();
+
+    }
+
+    public class MySinchClientListener implements SinchClientListener{
+
+        @Override
+        public void onClientStarted(SinchClient sinchClient) {
+
+        }
+
+        @Override
+        public void onClientFailed(SinchClient sinchClient, SinchError sinchError) {
+            sinchClient.terminateGracefully();
+
+        }
+
+        @Override
+        public void onLogMessage(int i, String s, String s1) {
+
+        }
+
+        @Override
+        public void onPushTokenRegistered() {
+
+        }
+
+        @Override
+        public void onPushTokenRegistrationFailed(SinchError sinchError) {
+
+        }
+
+        @Override
+        public void onCredentialsRequired(ClientRegistration clientRegistration) {
+
+        }
+
+        @Override
+        public void onUserRegistered() {
+
+        }
+
+        @Override
+        public void onUserRegistrationFailed(SinchError sinchError) {
+
+        }
+    }
+
+    public class MySinchCallClientListener implements CallClientListener{
+
+        @Override
+        public void onIncomingCall(CallClient callClient, Call call) {
+
+        }
+    }
 
 
     public void getUserStatus(){
@@ -491,7 +600,7 @@ public class MessageActivity extends AppCompatActivity {
                         } catch (JSONException e) {
                             e.printStackTrace();
                             Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
-                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
                         }
 
 
@@ -538,16 +647,13 @@ public class MessageActivity extends AppCompatActivity {
                             if (res.getInt("reqcode") == 1) {
 
 
-
-
-
                             } else {
                                 Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
                             }
                         } catch (JSONException e) {
                             e.printStackTrace();
                             Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
-                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
                         }
 
 
@@ -632,45 +738,6 @@ public class MessageActivity extends AppCompatActivity {
 
             }
 
-            /*try{
-                Uri dpp=data.getData();
-                final InputStream imageStream = getContentResolver().openInputStream(dpp);
-                Bitmap selectedImage = BitmapFactory.decodeStream(imageStream);
-
-                LayoutInflater factory = LayoutInflater.from(MessageActivity.this);
-                final View view1 = factory.inflate(R.layout.image_pop_up, null);
-                ImageView myimg = view1.findViewById(R.id.myimg);
-                myimg.setImageBitmap(selectedImage);
-                Button send = view1.findViewById(R.id.send);
-                Button cancel = view1.findViewById(R.id.cancel);
-
-
-
-
-                AlertDialog.Builder builder = new AlertDialog.Builder(MessageActivity.this).setView(view1);
-
-                AlertDialog dialog=builder.create();
-
-                dialog.show();
-
-                send.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-
-                    }
-                });
-
-                cancel.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        dialog.dismiss();
-                    }
-                });
-
-            }
-            catch (Exception e){
-
-            }*/
 
         }
 
@@ -757,9 +824,472 @@ public class MessageActivity extends AppCompatActivity {
     protected void onPause() {
         handler.removeCallbacks(runnable); //stop handler when activity not visible
         toOnline("offline");
+        screenshotDetectionDelegate.stopScreenshotDetection();
         super.onPause();
     }
 
 
 
+    public void sendUserNotification(int idOfUser, String MsgUser){
+        StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getUserbyId.php",
+                new Response.Listener<String>() {
+
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void onResponse(String response) {
+                        System.out.println(response);
+
+
+                        try {
+                            JSONObject res = new JSONObject(response);
+
+                            if (res.getInt("reqcode") == 1) {
+                                JSONObject userReceiver=res.getJSONObject("user");
+
+                                StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getUserbyId.php",
+                                        new Response.Listener<String>() {
+
+                                            @RequiresApi(api = Build.VERSION_CODES.O)
+                                            @Override
+                                            public void onResponse(String response) {
+                                                System.out.println(response);
+
+
+                                                try {
+                                                    JSONObject res = new JSONObject(response);
+
+                                                    if (res.getInt("reqcode") == 1) {
+                                                        JSONObject user=res.getJSONObject("user");
+
+                                                        try {
+                                                            JSONObject object = new JSONObject("{ "+
+                                                                    "'include_player_ids': ["+userReceiver.getString("deviceId")+"],"+
+                                                                    "'contents': { 'en': '"+user.getString("name")+": "+MsgUser+"' },"+
+                                                                    "'headers': { 'en': 'New Message' }"+
+                                                                    " }");
+
+                                                            OneSignal.postNotification(object, new OneSignal.PostNotificationResponseHandler() {
+                                                                @Override
+                                                                public void onSuccess(JSONObject jsonObject) {
+                                                                    Toast.makeText(MessageActivity.this, "Notification Send", Toast.LENGTH_LONG).show();
+
+                                                                }
+
+                                                                @Override
+                                                                public void onFailure(JSONObject jsonObject) {
+                                                                    Toast.makeText(MessageActivity.this, "Error Sending Notification", Toast.LENGTH_LONG).show();
+
+                                                                }
+                                                            });
+                                                        } catch (JSONException e) {
+                                                            e.printStackTrace();
+                                                            Toast.makeText(MessageActivity.this, "JSON Error in Notification", Toast.LENGTH_LONG).show();
+                                                        }
+
+
+
+
+                                                    } else {
+                                                        Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                                                    }
+                                                } catch (JSONException e) {
+                                                    e.printStackTrace();
+                                                    Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+
+                                                }
+
+
+                                            }
+                                        },
+                                        new Response.ErrorListener() {
+                                            @Override
+                                            public void onErrorResponse(VolleyError error) {
+                                                Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                                            }
+                                        }) {
+                                    @Nullable
+                                    @Override
+                                    protected Map<String, String> getParams() throws AuthFailureError {
+                                        Map<String, String> params = new HashMap<>();
+
+
+                                        params.put("id", String.valueOf(mPref.getInt("id", 0)));
+
+
+                                        return params;
+                                    }
+                                };
+
+                                RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+                                queue.add(request);
+
+
+
+
+                            } else {
+                                Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }) {
+            @Nullable
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+
+
+                params.put("id", String.valueOf(idOfUser));
+
+
+                return params;
+            }
+        };
+
+        RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+        queue.add(request);
+
+    }
+
+
+    @Override
+    public void onScreenCaptured(@NonNull String s) {
+
+        Toast.makeText(MessageActivity.this, "ScreenShot", Toast.LENGTH_LONG).show();
+
+        StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getUserbyId.php",
+                new Response.Listener<String>() {
+
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void onResponse(String response) {
+                        System.out.println(response);
+
+
+                        try {
+                            JSONObject res = new JSONObject(response);
+
+                            if (res.getInt("reqcode") == 1) {
+                                JSONObject userReceiver=res.getJSONObject("user");
+
+                                StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getUserbyId.php",
+                                        new Response.Listener<String>() {
+
+                                            @RequiresApi(api = Build.VERSION_CODES.O)
+                                            @Override
+                                            public void onResponse(String response) {
+                                                System.out.println(response);
+
+
+                                                try {
+                                                    JSONObject res = new JSONObject(response);
+
+                                                    if (res.getInt("reqcode") == 1) {
+                                                        JSONObject user=res.getJSONObject("user");
+
+                                                        try {
+                                                            JSONObject object = new JSONObject("{ "+
+                                                                    "'include_player_ids': ["+userReceiver.getString("deviceId")+"],"+
+                                                                    "'contents': { 'en': '"+user.getString("name")+": Screen Shot of Chat"+"' },"+
+                                                                    "'headers': { 'en': 'ScreenShot' }"+
+                                                                    " }");
+
+                                                            OneSignal.postNotification(object, new OneSignal.PostNotificationResponseHandler() {
+                                                                @Override
+                                                                public void onSuccess(JSONObject jsonObject) {
+                                                                    Toast.makeText(MessageActivity.this, "Notification Send", Toast.LENGTH_LONG).show();
+
+                                                                }
+
+                                                                @Override
+                                                                public void onFailure(JSONObject jsonObject) {
+                                                                    Toast.makeText(MessageActivity.this, "Error Sending Notification", Toast.LENGTH_LONG).show();
+
+                                                                }
+                                                            });
+
+//                                                            JSONObject object1 = new JSONObject("{ "+
+//                                                                    "'include_player_ids': ["+user.getString("deviceId")+"],"+
+//                                                                    "'contents': { 'en': '"+"Screen Shot of Chat"+"' },"+
+//                                                                    "'headers': { 'en': 'ScreenShot' }"+
+//                                                                    " }");
+//
+//                                                            OneSignal.postNotification(object1, new OneSignal.PostNotificationResponseHandler() {
+//                                                                @Override
+//                                                                public void onSuccess(JSONObject jsonObject) {
+//                                                                    Toast.makeText(MessageActivity.this, "Notification Send", Toast.LENGTH_LONG).show();
+//
+//                                                                }
+//
+//                                                                @Override
+//                                                                public void onFailure(JSONObject jsonObject) {
+//                                                                    Toast.makeText(MessageActivity.this, "Error Sending Notification", Toast.LENGTH_LONG).show();
+//
+//                                                                }
+//                                                            });
+                                                        } catch (JSONException e) {
+                                                            e.printStackTrace();
+                                                            Toast.makeText(MessageActivity.this, "JSON Error in Notification", Toast.LENGTH_LONG).show();
+                                                        }
+
+
+
+
+                                                    } else {
+                                                        Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                                                    }
+                                                } catch (JSONException e) {
+                                                    e.printStackTrace();
+                                                    Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+
+                                                }
+
+
+                                            }
+                                        },
+                                        new Response.ErrorListener() {
+                                            @Override
+                                            public void onErrorResponse(VolleyError error) {
+                                                Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                                            }
+                                        }) {
+                                    @Nullable
+                                    @Override
+                                    protected Map<String, String> getParams() throws AuthFailureError {
+                                        Map<String, String> params = new HashMap<>();
+
+
+                                        params.put("id", String.valueOf(mPref.getInt("id", 0)));
+
+
+                                        return params;
+                                    }
+                                };
+
+                                RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+                                queue.add(request);
+
+
+
+
+                            } else {
+                                Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }) {
+            @Nullable
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+
+
+                params.put("id", String.valueOf(id));
+
+
+                return params;
+            }
+        };
+
+        RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+        queue.add(request);
+
+    }
+
+    @Override
+    public void onScreenCapturedWithDeniedPermission() {
+
+        Toast.makeText(MessageActivity.this, "ScreenShot captured", Toast.LENGTH_LONG).show();
+
+        StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getUserbyId.php",
+                new Response.Listener<String>() {
+
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void onResponse(String response) {
+                        System.out.println(response);
+
+
+                        try {
+                            JSONObject res = new JSONObject(response);
+
+                            if (res.getInt("reqcode") == 1) {
+                                JSONObject userReceiver=res.getJSONObject("user");
+
+                                StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getUserbyId.php",
+                                        new Response.Listener<String>() {
+
+                                            @RequiresApi(api = Build.VERSION_CODES.O)
+                                            @Override
+                                            public void onResponse(String response) {
+                                                System.out.println(response);
+
+
+                                                try {
+                                                    JSONObject res = new JSONObject(response);
+
+                                                    if (res.getInt("reqcode") == 1) {
+                                                        JSONObject user=res.getJSONObject("user");
+
+                                                        try {
+                                                            JSONObject object = new JSONObject("{ "+
+                                                                    "'include_player_ids': ["+userReceiver.getString("deviceId")+"],"+
+                                                                    "'contents': { 'en': '"+user.getString("name")+": Screen Shot of Chat"+"' },"+
+                                                                    "'headers': { 'en': 'ScreenShot' }"+
+                                                                    " }");
+
+                                                            OneSignal.postNotification(object, new OneSignal.PostNotificationResponseHandler() {
+                                                                @Override
+                                                                public void onSuccess(JSONObject jsonObject) {
+                                                                    Toast.makeText(MessageActivity.this, "Notification Send", Toast.LENGTH_LONG).show();
+
+                                                                }
+
+                                                                @Override
+                                                                public void onFailure(JSONObject jsonObject) {
+                                                                    Toast.makeText(MessageActivity.this, "Error Sending Notification", Toast.LENGTH_LONG).show();
+
+                                                                }
+                                                            });
+
+//                                                            JSONObject object1 = new JSONObject("{ "+
+//                                                                    "'include_player_ids': ["+user.getString("deviceId")+"],"+
+//                                                                    "'contents': { 'en': '"+"Screen Shot of Chat"+"' },"+
+//                                                                    "'headers': { 'en': 'ScreenShot' }"+
+//                                                                    " }");
+//
+//                                                            OneSignal.postNotification(object1, new OneSignal.PostNotificationResponseHandler() {
+//                                                                @Override
+//                                                                public void onSuccess(JSONObject jsonObject) {
+//                                                                    Toast.makeText(MessageActivity.this, "Notification Send", Toast.LENGTH_LONG).show();
+//
+//                                                                }
+//
+//                                                                @Override
+//                                                                public void onFailure(JSONObject jsonObject) {
+//                                                                    Toast.makeText(MessageActivity.this, "Error Sending Notification", Toast.LENGTH_LONG).show();
+//
+//                                                                }
+//                                                            });
+                                                        } catch (JSONException e) {
+                                                            e.printStackTrace();
+                                                            Toast.makeText(MessageActivity.this, "JSON Error in Notification", Toast.LENGTH_LONG).show();
+                                                        }
+
+
+
+
+                                                    } else {
+                                                        Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                                                    }
+                                                } catch (JSONException e) {
+                                                    e.printStackTrace();
+                                                    Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+
+                                                }
+
+
+                                            }
+                                        },
+                                        new Response.ErrorListener() {
+                                            @Override
+                                            public void onErrorResponse(VolleyError error) {
+                                                Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                                            }
+                                        }) {
+                                    @Nullable
+                                    @Override
+                                    protected Map<String, String> getParams() throws AuthFailureError {
+                                        Map<String, String> params = new HashMap<>();
+
+
+                                        params.put("id", String.valueOf(mPref.getInt("id", 0)));
+
+
+                                        return params;
+                                    }
+                                };
+
+                                RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+                                queue.add(request);
+
+
+
+
+                            } else {
+                                Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }) {
+            @Nullable
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+
+
+                params.put("id", String.valueOf(id));
+
+
+                return params;
+            }
+        };
+
+        RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+        queue.add(request);
+
+    }
 }

@@ -29,6 +29,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.onesignal.OneSignal;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -135,7 +136,7 @@ public class SignUp extends AppCompatActivity {
                     DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
                     LocalDateTime now = LocalDateTime.now();
                     String lastSeen = "Last Seen " + dtf.format(now);
-                    String deviceId = "";
+                    String deviceId = OneSignal.getDeviceState().getUserId();
 
                     Bitmap bmp = ((BitmapDrawable) dp.getDrawable()).getBitmap();
                     ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -193,6 +194,7 @@ public class SignUp extends AppCompatActivity {
                         @Nullable
                         @Override
                         protected Map<String, String> getParams() throws AuthFailureError {
+//                            Toast.makeText(SignUp.this, u.getDeviceId(), Toast.LENGTH_LONG).show();
                             Map<String, String> params = new HashMap<>();
                             params.put("name", u.getName());
                             params.put("email", u.getEmail());
