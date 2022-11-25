@@ -297,48 +297,55 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
     @Override
     public void onIncomingCall(CallClient callClient, Call call) {
 
-        alertDialogRec = new AlertDialog.Builder(MessageActivity.this).create();
 
-        alertDialogRec.setTitle("Calling...");
+            alertDialogRec = new AlertDialog.Builder(MessageActivity.this).create();
 
-        call.addCallListener(new MyCallLister());
+            alertDialogRec.setTitle("Calling...");
 
-        alertDialogRec.setButton(AlertDialog.BUTTON_NEUTRAL, "Reject", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                dialogInterface.dismiss();
-                call.hangup();
-            }
-        });
+            call.addCallListener(new MyCallLister());
 
-        alertDialogRec.setButton(AlertDialog.BUTTON_POSITIVE, "Pick", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                call.answer();
+            alertDialogRec.setButton(AlertDialog.BUTTON_NEUTRAL, "Reject", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    dialogInterface.dismiss();
+                    call.hangup();
+                }
+            });
 
-                alertDialogRec.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(null);
-                alertDialogRec.dismiss();
+            alertDialogRec.setButton(AlertDialog.BUTTON_POSITIVE, "Pick", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
 
-                alertDialog1 = new AlertDialog.Builder(MessageActivity.this).create();
+                    call.answer();
 
-                alertDialog1.setTitle("Call Connected");
+                    alertDialogRec.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(null);
+                    alertDialogRec.dismiss();
 
-                alertDialog1.setButton(AlertDialog.BUTTON_NEUTRAL, "Hang Up", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialogInterface, int i) {
-                        dialogInterface.dismiss();
-                        call.hangup();
-                        alertDialog1.dismiss();
-                    }
-                });
+                    alertDialog1 = new AlertDialog.Builder(MessageActivity.this).create();
+
+                    alertDialog1.setTitle("Call Connected");
+
+                    alertDialog1.setButton(AlertDialog.BUTTON_NEUTRAL, "Hang Up", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            dialogInterface.dismiss();
+                            call.hangup();
+                            alertDialog1.dismiss();
+                        }
+                    });
 
 
 
-                alertDialog1.show();
-            }
-        });
+                    alertDialog1.show();
+                }
+            });
 
-        alertDialogRec.show();
+            alertDialogRec.show();
+
+
+
+
+
     }
 
     public class MyCallLister implements CallListener {
@@ -850,6 +857,23 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
                 call.addCallListener(new MyCallLister());
                 openCallerDialog(call);
                 showCallingNotification();
+            }else{
+                //User denied Permission.
+
+            }
+        }
+        if (requestCode == 101) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                if (requestCode == 100) {
+                    if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+
+                    }else{
+                        //User denied Permission.
+
+                    }
+                }
             }else{
                 //User denied Permission.
 

@@ -94,8 +94,12 @@ public class TabLayout extends AppCompatActivity implements ServiceConnection, M
         bindService( new Intent(TabLayout.this, MySinch.class), TabLayout.this, BIND_AUTO_CREATE);
 
 
-        ActivityCompat.requestPermissions(TabLayout.this, new String[] { Manifest.permission.READ_PHONE_STATE },
+        ActivityCompat.requestPermissions(TabLayout.this, new String[] { Manifest.permission.READ_PHONE_STATE, Manifest.permission.RECORD_AUDIO },
                 100);
+
+
+
+
 
 
 
@@ -105,6 +109,17 @@ public class TabLayout extends AppCompatActivity implements ServiceConnection, M
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+        if (requestCode == 100) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                }
+            }else{
+                //User denied Permission.
+            }
+        }
+
+
     }
 
     @Override
