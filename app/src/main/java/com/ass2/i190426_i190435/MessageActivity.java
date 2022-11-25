@@ -11,10 +11,14 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.ActivityManager;
+import android.app.AlertDialog;
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.ContentObserver;
@@ -26,6 +30,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.view.View;
 import android.widget.EditText;
@@ -53,6 +58,7 @@ import com.sinch.android.rtc.SinchError;
 import com.sinch.android.rtc.calling.Call;
 import com.sinch.android.rtc.calling.CallClient;
 import com.sinch.android.rtc.calling.CallClientListener;
+import com.sinch.android.rtc.calling.CallListener;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -76,14 +82,14 @@ import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
-public class MessageActivity extends AppCompatActivity implements ScreenshotDetectionDelegate.ScreenshotDetectionListener {
+public class MessageActivity extends AppCompatActivity implements ScreenshotDetectionDelegate.ScreenshotDetectionListener, ServiceConnection, MySinch.SinchClassInitializationListerner, CallClientListener {
 
     ScreenshotDetectionDelegate screenshotDetectionDelegate= new ScreenshotDetectionDelegate(MessageActivity.this, MessageActivity.this);
     CircleImageView profile;
     TextView name, seen;
     EditText msg;
     ImageButton send, voice;
-    ImageView image, imgg;
+    ImageView image, imgg, call;
     boolean isVoice=false;
     MediaRecorder recorder;
     String fileName;
@@ -94,6 +100,8 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
     int id;
 
     RecyclerView rv;
+    AlertDialog alertDialog=null;
+    AlertDialog alertDialog1=null;
 
     MessageAdapter adapter;
     List<Chat> ls;
@@ -103,8 +111,9 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
 
     Bitmap selectedImage=null;
 
-    ContentObserver contentObserver;
-    SinchClient client;
+    MySinch.SinchServiceBinder sinchServiceBinder=null;
+    AlertDialog alertDialogRec=null;
+
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     @Override
@@ -123,6 +132,7 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
         editmPref=mPref.edit();
         image=findViewById(R.id.image);
         voice=findViewById(R.id.voice);
+        call=findViewById(R.id.call);
 
         adapter=new MessageAdapter(ls, MessageActivity.this);
         rv.setAdapter(adapter);
@@ -140,6 +150,8 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
         byte[] imageData= Base64.getDecoder().decode(userDp);
         Bitmap dppp = BitmapFactory.decodeByteArray(imageData, 0, imageData.length);
         profile.setImageBitmap(dppp);
+
+
 
 
         seenUser=getIntent().getStringExtra("lastSeen");
@@ -238,8 +250,132 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
         });
 
 
+        bindService( new Intent(MessageActivity.this, MySinch.class), MessageActivity.this, BIND_AUTO_CREATE);
+
+
+
+        call.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                    ActivityCompat.requestPermissions(MessageActivity.this, new String[] { Manifest.permission.RECORD_AUDIO },
+                            100);
+
+            }
+        });
+
+
 
     }
+
+
+
+
+
+    private void openCallerDialog(Call call){
+
+        alertDialog= new AlertDialog.Builder(MessageActivity.this).create();
+
+        alertDialog.setTitle("Calling...");
+
+
+        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "Hang Up", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                dialogInterface.dismiss();
+                call.hangup();
+//                mainCall.hangup();
+            }
+        });
+
+
+        alertDialog.show();
+
+
+    }
+
+    @Override
+    public void onIncomingCall(CallClient callClient, Call call) {
+
+        alertDialogRec = new AlertDialog.Builder(MessageActivity.this).create();
+
+        alertDialogRec.setTitle("Calling...");
+
+        call.addCallListener(new MyCallLister());
+
+        alertDialogRec.setButton(AlertDialog.BUTTON_NEUTRAL, "Reject", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                dialogInterface.dismiss();
+                call.hangup();
+            }
+        });
+
+        alertDialogRec.setButton(AlertDialog.BUTTON_POSITIVE, "Pick", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                call.answer();
+
+                alertDialogRec.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(null);
+                alertDialogRec.dismiss();
+
+                alertDialog1 = new AlertDialog.Builder(MessageActivity.this).create();
+
+                alertDialog1.setTitle("Call Connected");
+
+                alertDialog1.setButton(AlertDialog.BUTTON_NEUTRAL, "Hang Up", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                        call.hangup();
+                        alertDialog1.dismiss();
+                    }
+                });
+
+
+
+                alertDialog1.show();
+            }
+        });
+
+        alertDialogRec.show();
+    }
+
+    public class MyCallLister implements CallListener {
+
+        @Override
+        public void onCallProgressing(Call call) {
+//            Toast.makeText(MessageActivity.this, "Ringing....", Toast.LENGTH_LONG).show();
+        }
+
+        @Override
+        public void onCallEstablished(Call call) {
+            alertDialog.setTitle("Call Connected");
+//            Toast.makeText(MessageActivity.this, "Call Connected", Toast.LENGTH_LONG).show();
+        }
+
+        @Override
+        public void onCallEnded(Call call) {
+            Toast.makeText(MessageActivity.this, "Call Ended", Toast.LENGTH_LONG).show();
+
+            if(alertDialog!=null){
+                alertDialog.dismiss();
+                alertDialog=null;
+            }
+
+            if(alertDialogRec!=null){
+                alertDialogRec.dismiss();
+                alertDialogRec=null;
+            }
+
+            if(alertDialog1!=null){
+                alertDialog1.dismiss();
+                alertDialog1=null;
+            }
+        }
+    }
+
+
     @RequiresApi(api = Build.VERSION_CODES.O)
     public void sendMessage(int sender, int receiver,String message, String messageType){
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
@@ -465,21 +601,12 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
 
         screenshotDetectionDelegate.startScreenshotDetection();
 
-//        contentObserver = new ContentObserver(new Handler(Looper.getMainLooper())) {
-//            @Override
-//            public void onChange ( boolean selfChange, Uri uri){
-//                super.onChange(selfChange, uri);
-//            }
-//        };
-//
-//        ContentResolver.Reg
 
-        initSinch();
+
 
 
         handler.postDelayed(runnable =new Runnable() {
             public void run() {
-//                Toast.makeText(MessageActivity.this, "Refreshed", Toast.LENGTH_SHORT).show();
                 getMessage();
                 updateToseen();
                 getUserStatus();
@@ -488,77 +615,6 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
         }, 3000);
         super.onResume();
 
-    }
-
-    public void initSinch(){
-
-//        client = Sinch.getSinchClientBuilder()
-//                .context(this)
-//                .applicationKey("")
-//                .environmentHost("").build();
-//
-//        client.startListeningOnActiveConnection();
-//
-//        client.addSinchClientListener(new MySinchClientListener());
-//
-//        client.getCallClient().setRespectNativeCalls(false);
-//
-//        client.getCallClient().addCallClientListener(new MySinchCallClientListener());
-//
-//        client.start();
-
-    }
-
-    public class MySinchClientListener implements SinchClientListener{
-
-        @Override
-        public void onClientStarted(SinchClient sinchClient) {
-
-        }
-
-        @Override
-        public void onClientFailed(SinchClient sinchClient, SinchError sinchError) {
-            sinchClient.terminateGracefully();
-
-        }
-
-        @Override
-        public void onLogMessage(int i, String s, String s1) {
-
-        }
-
-        @Override
-        public void onPushTokenRegistered() {
-
-        }
-
-        @Override
-        public void onPushTokenRegistrationFailed(SinchError sinchError) {
-
-        }
-
-        @Override
-        public void onCredentialsRequired(ClientRegistration clientRegistration) {
-
-        }
-
-        @Override
-        public void onUserRegistered() {
-
-        }
-
-        @Override
-        public void onUserRegistrationFailed(SinchError sinchError) {
-
-        }
-    }
-
-    public class MySinchCallClientListener implements CallClientListener{
-
-        @Override
-        public void onIncomingCall(CallClient callClient, Call call) {
-
-        }
     }
 
 
@@ -787,6 +843,156 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
                 //User denied Permission.
             }
         }
+        if (requestCode == 100) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                Call call= sinchServiceBinder.callUser(String.valueOf(id));
+                call.addCallListener(new MyCallLister());
+                openCallerDialog(call);
+                showCallingNotification();
+            }else{
+                //User denied Permission.
+
+            }
+        }
+    }
+
+    public void showCallingNotification(){
+        StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getUserbyId.php",
+                new Response.Listener<String>() {
+
+                    @RequiresApi(api = Build.VERSION_CODES.O)
+                    @Override
+                    public void onResponse(String response) {
+                        System.out.println(response);
+
+
+                        try {
+                            JSONObject res = new JSONObject(response);
+
+                            if (res.getInt("reqcode") == 1) {
+                                JSONObject userReceiver=res.getJSONObject("user");
+
+                                StringRequest request = new StringRequest(Request.Method.POST, Ip.ipAdd + "/getUserbyId.php",
+                                        new Response.Listener<String>() {
+
+                                            @RequiresApi(api = Build.VERSION_CODES.O)
+                                            @Override
+                                            public void onResponse(String response) {
+                                                System.out.println(response);
+
+
+                                                try {
+                                                    JSONObject res = new JSONObject(response);
+
+                                                    if (res.getInt("reqcode") == 1) {
+                                                        JSONObject user=res.getJSONObject("user");
+
+                                                        try {
+                                                            JSONObject object = new JSONObject("{ "+
+                                                                    "'include_player_ids': ["+userReceiver.getString("deviceId")+"],"+
+                                                                    "'contents': { 'en': '"+user.getString("name")+": Calling"+"' },"+
+                                                                    "'headers': { 'en': 'New Message' }"+
+                                                                    " }");
+
+                                                            OneSignal.postNotification(object, new OneSignal.PostNotificationResponseHandler() {
+                                                                @Override
+                                                                public void onSuccess(JSONObject jsonObject) {
+                                                                    Toast.makeText(MessageActivity.this, "Notification Send", Toast.LENGTH_LONG).show();
+
+                                                                }
+
+                                                                @Override
+                                                                public void onFailure(JSONObject jsonObject) {
+                                                                    Toast.makeText(MessageActivity.this, "Error Sending Notification", Toast.LENGTH_LONG).show();
+
+                                                                }
+                                                            });
+                                                        } catch (JSONException e) {
+                                                            e.printStackTrace();
+                                                            Toast.makeText(MessageActivity.this, "JSON Error in Notification", Toast.LENGTH_LONG).show();
+                                                        }
+
+
+
+
+                                                    } else {
+                                                        Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                                                    }
+                                                } catch (JSONException e) {
+                                                    e.printStackTrace();
+                                                    Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+
+                                                }
+
+
+                                            }
+                                        },
+                                        new Response.ErrorListener() {
+                                            @Override
+                                            public void onErrorResponse(VolleyError error) {
+                                                Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                                            }
+                                        }) {
+                                    @Nullable
+                                    @Override
+                                    protected Map<String, String> getParams() throws AuthFailureError {
+                                        Map<String, String> params = new HashMap<>();
+
+
+                                        params.put("id", String.valueOf(mPref.getInt("id", 0)));
+
+
+                                        return params;
+                                    }
+                                };
+
+                                RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+                                queue.add(request);
+
+
+
+
+                            } else {
+                                Toast.makeText(MessageActivity.this, res.get("reqmsg").toString(), Toast.LENGTH_LONG).show();
+
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                            Toast.makeText(MessageActivity.this, "Cannot Parse JSON", Toast.LENGTH_LONG).show();
+//                            Toast.makeText(MessageActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
+
+                        }
+
+
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+//                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }) {
+            @Nullable
+            @Override
+            protected Map<String, String> getParams() throws AuthFailureError {
+                Map<String, String> params = new HashMap<>();
+
+
+                params.put("id", String.valueOf(id));
+
+
+                return params;
+            }
+        };
+
+        RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
+        queue.add(request);
+
     }
 
     public void startRecording() {
@@ -947,6 +1153,7 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
                     @Override
                     public void onErrorResponse(VolleyError error) {
                         Toast.makeText(MessageActivity.this, "Connection Error", Toast.LENGTH_LONG).show();
+
 //                        Toast.makeText(MessageActivity.this, error.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 }) {
@@ -1290,6 +1497,33 @@ public class MessageActivity extends AppCompatActivity implements ScreenshotDete
 
         RequestQueue queue = Volley.newRequestQueue(MessageActivity.this);
         queue.add(request);
+
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        sinchServiceBinder =(MySinch.SinchServiceBinder) iBinder;
+        sinchServiceBinder.setClientInitializationListener(this);
+
+        sinchServiceBinder.start(String.valueOf(mPref.getInt("id", 0)));
+
+        sinchServiceBinder.addCallControllerListener(this);
+
+
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+
+    }
+
+    @Override
+    public void onStartedSuccessfully() {
+
+    }
+
+    @Override
+    public void onFailed(SinchError error) {
 
     }
 }

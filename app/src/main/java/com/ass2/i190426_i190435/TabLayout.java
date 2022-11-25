@@ -4,17 +4,26 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
+import android.Manifest;
+import android.app.AlertDialog;
+import android.content.ComponentName;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -28,6 +37,11 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.sinch.android.rtc.SinchError;
+import com.sinch.android.rtc.calling.Call;
+import com.sinch.android.rtc.calling.CallClient;
+import com.sinch.android.rtc.calling.CallClientListener;
+import com.sinch.android.rtc.calling.CallListener;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -43,13 +57,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class TabLayout extends AppCompatActivity {
+public class TabLayout extends AppCompatActivity implements ServiceConnection, MySinch.SinchClassInitializationListerner, CallClientListener {
 
     com.google.android.material.tabs.TabLayout tabLayout;
     ViewPager viewPager;
     ViewPagerAdapter viewPagerAdapter;
     SharedPreferences mPref;
     SharedPreferences.Editor editmPref;
+
+    MySinch.SinchServiceBinder sinchServiceBinder=null;
+
+    AlertDialog alertDialogRec=null;
+    AlertDialog alertDialog1=null;
 
 
     @Override
@@ -72,8 +91,20 @@ public class TabLayout extends AppCompatActivity {
         mPref=getSharedPreferences("com.ass2.i190426_i190435", MODE_PRIVATE);
         editmPref=mPref.edit();
 
+        bindService( new Intent(TabLayout.this, MySinch.class), TabLayout.this, BIND_AUTO_CREATE);
 
 
+        ActivityCompat.requestPermissions(TabLayout.this, new String[] { Manifest.permission.READ_PHONE_STATE },
+                100);
+
+
+
+
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
     @Override
@@ -90,26 +121,123 @@ public class TabLayout extends AppCompatActivity {
     {
         super.onOptionsItemSelected(item);
 
-       /* if (item.getItemId() == R.id.main_logout_option)
-        {
-            updateUserStatus("offline");
-            mAuth.signOut();
-            SendUserToLoginActivity();
-        }
-        if (item.getItemId() == R.id.main_settings_option)
-        {
-            SendUserToSettingsActivity();
-        }
-        if (item.getItemId() == R.id.main_create_group_option)
-        {
-            RequestNewGroup();
-        }
-        if (item.getItemId() == R.id.main_find_friends_option)
-        {
-            SendUserToFindFriendsActivity();
-        }*/
+
 
         return true;
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
+        sinchServiceBinder =(MySinch.SinchServiceBinder) iBinder;
+        sinchServiceBinder.setClientInitializationListener(this);
+
+        sinchServiceBinder.start(String.valueOf(mPref.getInt("id", 0)));
+        sinchServiceBinder.addCallControllerListener(this);
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+
+    }
+
+    @Override
+    public void onBindingDied(ComponentName name) {
+        ServiceConnection.super.onBindingDied(name);
+    }
+
+    @Override
+    public void onNullBinding(ComponentName name) {
+        ServiceConnection.super.onNullBinding(name);
+    }
+
+    @Override
+    public void onPointerCaptureChanged(boolean hasCapture) {
+        super.onPointerCaptureChanged(hasCapture);
+    }
+
+    @Override
+    public void onStartedSuccessfully() {
+
+    }
+
+    @Override
+    public void onFailed(SinchError error) {
+
+    }
+
+    @Override
+    public void onIncomingCall(CallClient callClient, Call call) {
+
+        call.addCallListener(new MyCallLister());
+
+        alertDialogRec = new AlertDialog.Builder(TabLayout.this).create();
+
+        alertDialogRec.setTitle("Calling...");
+
+        alertDialogRec.setButton(AlertDialog.BUTTON_NEUTRAL, "Reject", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                dialogInterface.dismiss();
+                call.hangup();
+            }
+        });
+
+        alertDialogRec.setButton(AlertDialog.BUTTON_POSITIVE, "Pick", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                call.answer();
+//                call.addCallListener(new MyCallLister());
+                alertDialogRec.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(null);
+                alertDialogRec.dismiss();
+
+                alertDialog1 = new AlertDialog.Builder(TabLayout.this).create();
+
+                alertDialog1.setTitle("Call Connected");
+
+                alertDialog1.setButton(AlertDialog.BUTTON_NEUTRAL, "Hang Up", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        dialogInterface.dismiss();
+                        call.hangup();
+                        alertDialog1.dismiss();
+                    }
+                });
+
+
+
+                alertDialog1.show();
+            }
+        });
+
+        alertDialogRec.show();
+
+    }
+
+    public class MyCallLister implements CallListener {
+
+        @Override
+        public void onCallProgressing(Call call) {
+//            Toast.makeText(TabLayout.this, "Ringing....", Toast.LENGTH_LONG).show();
+        }
+
+        @Override
+        public void onCallEstablished(Call call) {
+//            Toast.makeText(TabLayout.this, "Call Connected", Toast.LENGTH_LONG).show();
+        }
+
+        @Override
+        public void onCallEnded(Call call) {
+            Toast.makeText(TabLayout.this, "Call Ended", Toast.LENGTH_LONG).show();
+            if(alertDialogRec!=null){
+                alertDialogRec.dismiss();
+                alertDialogRec=null;
+            }
+
+            if(alertDialog1!=null){
+                alertDialog1.dismiss();
+                alertDialog1=null;
+            }
+        }
     }
 
     class ViewPagerAdapter extends FragmentPagerAdapter{
